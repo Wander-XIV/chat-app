@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Bubble, GiftedChat } from "react-native-gifted-chat";
 import { View, StyleSheet, Platform, KeyboardAvoidingView } from "react-native";
 
 export default function Chat(props) {
+  // Retrieving the name and color properties passed from the Start Screen
+  let { name, color } = props.route.params;
+
   // state for holding messages
   const [messages, setMessages] = useState([]);
-
-  // destructuring the porps
-  let { name, color } = props.route.params;
 
   // change title once user proceeds to chat
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function Chat(props) {
       },
       {
         _id: 2,
-        text: "This is a system message",
+        text: `${name} has entered the chat`,
         createdAt: new Date(),
         system: true,
       },
@@ -37,9 +37,11 @@ export default function Chat(props) {
   }, []);
 
   // function to send message in chat room
-  function onSend(messages = []) {
-    setMessages((prevState) => GiftedChat.append(prevState.messages, messages));
-  }
+  const onSend = useCallback((messages = []) => {
+    setMessages((previousMessages) =>
+      GiftedChat.append(previousMessages, messages)
+    );
+  }, []);
 
   // function to alter the bakcgorund color of bubble when user sends msg in chat
   function renderBubble(props) {
@@ -51,7 +53,7 @@ export default function Chat(props) {
           //   backgroundColor: 'blue'
           // },
           right: {
-            backgroundColor: "#242ACF",
+            backgroundColor: "#000",
           },
         }}
       />
