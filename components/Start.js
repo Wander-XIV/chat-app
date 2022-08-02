@@ -1,192 +1,187 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
-  Text,
-  View,
-  TextInput,
   StyleSheet,
-  ImageBackground,
+  Text,
+  TextInput,
+  View,
   Pressable,
   TouchableOpacity,
+  ImageBackground,
+  Platform,
+  KeyboardAvoidingView,
 } from "react-native";
+import { signInAnonymously } from "firebase/auth";
+import { auth } from "./firebase";
+import NetInfo from "@react-native-community/netinfo";
 
 // import the background image
-import image from "../assets/Background_Image.png";
+import BackgroundImage from "../assets/Background_Image.png";
 
-// variable holding the color choices for background
+// Create constant that holds background colors for Chat Screen
 const colors = {
   black: "#090C08",
   purple: "#474056",
-  gray: "#8A95A5",
-  hackie: "#B9C6AE",
-  blue: "#c9e9f6",
+  grey: "#8A95A5",
+  green: "#B9C6AE",
 };
 
-// function Start renders the main page of the app
 export default function Start(props) {
-  // init states for the name and background color
-  const [name, setName] = useState("");
-  const [color, setColor] = useState();
+  let [name, setName] = useState();
+  let [color, setColor] = useState();
 
-  // init state to focus in input text
-  const [isFocused, setIsFocused] = useState(false);
+  // State to hold information if user is offline or online
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Authenticate the user via Firebase and then redirect to the chat screen, passing the name and color props
+  const onHandleStart = () => {
+    if (isConnected) {
+      signInAnonymously(auth)
+        .then(() => {
+          console.log("Login success");
+          props.navigation.navigate("Chat", { name: name, color: color });
+        })
+        .catch((err) => console.log(`Login err: ${err}`));
+    } else {
+      props.navigation.navigate("Chat", { name: name, color: color });
+    }
+  };
+
+  useEffect(() => {
+    // Check if user is offline or online using NetInfo
+    NetInfo.fetch().then((connection) => {
+      if (connection.isConnected) {
+        setIsConnected(true);
+      } else {
+        setIsConnected(false);
+      }
+    });
+  });
 
   return (
     <View style={styles.container}>
-      <ImageBackground source={image} resizeMode={"cover"} style={styles.image}>
+      <ImageBackground
+        source={BackgroundImage}
+        resizeMode="cover"
+        style={styles.image}
+      >
         <Text style={styles.title}>Chat App</Text>
+
         <View style={styles.box}>
+          {/* Input box to set user name passed to chat screen */}
           <TextInput
-            style={[
-              styles.input,
-              isFocused && {
-                backgroundColor: "#F1F7F6",
-                borderColor: "#F1F7F6",
-              },
-            ]}
-            onFocus={() => setIsFocused(!isFocused)}
             onChangeText={(name) => setName(name)}
             value={name}
-            placeholder="your name..."
-            {...props}
+            style={styles.input}
+            placeholder="Your username..."
           />
-          <Text style={styles.textBg}>Choose Background Color</Text>
-          <View style={styles.colorBg}>
+
+          {/* Allow user to choose a background color for the chat screen */}
+          <Text style={styles.text}>Choose Background Color:</Text>
+          <View style={styles.colorContainer}>
             <TouchableOpacity
-              accessible={true}
-              accessibilityLabel="Black background"
-              accessibilityHint="Lets you to alter the background color in chat"
-              accessibilityRole="button"
-              style={styles.colorBlack}
+              style={[{ backgroundColor: colors.black }, styles.colorbutton]}
               onPress={() => setColor(colors.black)}
             />
             <TouchableOpacity
-              accessible={true}
-              accessibilityLabel="Purple background"
-              accessibilityHint="Lets you to alter the background color in chat"
-              accessibilityRole="button"
-              style={[styles.colorBlack, { backgroundColor: colors.purple }]}
+              style={[{ backgroundColor: colors.purple }, styles.colorbutton]}
               onPress={() => setColor(colors.purple)}
             />
             <TouchableOpacity
-              accessible={true}
-              accessibilityLabel="Gray background"
-              accessibilityHint="Lets you to alter thebackground color in chat"
-              accessibilityRole="button"
-              style={[styles.colorBlack, { backgroundColor: colors.gray }]}
-              onPress={() => setColor(colors.gray)}
+              style={[{ backgroundColor: colors.grey }, styles.colorbutton]}
+              onPress={() => setColor(colors.grey)}
             />
             <TouchableOpacity
-              accessible={true}
-              accessibilityLabel="Hackie background"
-              accessibilityHint="Lets you to alter thebackground color in chat"
-              accessibilityRole="button"
-              style={[styles.colorBlack, { backgroundColor: colors.hackie }]}
-              onPress={() => setColor(colors.hackie)}
-            />
-            <TouchableOpacity
-              accessible={true}
-              accessibilityLabel="Blue background"
-              accessibilityHint="Lets you to alter thebackground color in chat"
-              accessibilityRole="button"
-              style={[styles.colorBlack, { backgroundColor: colors.blue }]}
-              onPress={() => setColor(colors.blue)}
+              style={[{ backgroundColor: colors.green }, styles.colorbutton]}
+              onPress={() => setColor(colors.green)}
             />
           </View>
+
+          {/* Authenticate user & Open chatroom, passing user name and background color as props */}
           <Pressable
-            accessible={true}
-            accessibilityLabel="Go to chat"
-            accessibilityHint="Lets you in chat"
-            accessibilityRole="button"
-            style={styles.btnStart}
-            onPress={() => {
-              props.navigation.navigate("Chat", { name: name, color: color });
-            }}
+            onPress={onHandleStart}
+            style={({ pressed }) => [
+              {
+                backgroundColor: pressed ? "#585563" : "#757083",
+              },
+              styles.button,
+            ]}
           >
-            <Text style={styles.btnText}>Start Chatting</Text>
+            <Text style={styles.buttontext}>Start Chatting</Text>
           </Pressable>
         </View>
       </ImageBackground>
+      {Platform.OS === "android" ? (
+        <KeyboardAvoidingView behavior="height" />
+      ) : null}
     </View>
   );
 }
 
-// this is the declaration of styles for the Start component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
   },
 
   image: {
     flex: 1,
-    justifyContent: "center",
-  },
-
-  box: {
-    flex: 1,
+    flexDirection: "column",
     justifyContent: "space-evenly",
     alignItems: "center",
-    backgroundColor: "#fff",
-    height: "20%",
-    width: "90%",
-    marginLeft: 16,
-    marginBottom: 16,
-    borderRadius: 5,
   },
 
   title: {
-    flex: 1,
     fontSize: 45,
     fontWeight: "600",
-    color: "#fff",
-    marginLeft: 100,
-    marginTop: "50%",
+    color: "#ffffff",
+  },
+
+  box: {
+    width: "88%",
+    backgroundColor: "white",
+    alignItems: "center",
+    height: "44%",
+    justifyContent: "space-evenly",
   },
 
   input: {
-    height: 40,
-    width: "90%",
-    borderColor: "#D0D1D1",
-    borderWidth: 1,
-    padding: 10,
-    marginTop: "5%",
-    borderRadius: 5,
-  },
-
-  textBg: {
-    fontSize: 20,
+    height: 50,
+    width: "88%",
+    fontSize: 16,
     fontWeight: "300",
     color: "#757083",
-    padding: 20,
+    borderColor: "gray",
+    borderWidth: 1,
+    paddingHorizontal: 10,
   },
 
-  colorBg: {
-    flex: 1,
+  text: {
+    color: "#757083",
+    fontSize: 16,
+    fontWeight: "300",
+  },
+
+  colorContainer: {
+    width: "88%",
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-evenly",
   },
 
-  colorBlack: {
-    height: 40,
+  colorbutton: {
     width: 40,
-    backgroundColor: colors.black,
+    height: 40,
     borderRadius: 20,
-    margin: 3,
   },
 
-  btnStart: {
+  button: {
+    height: 50,
+    width: "88%",
     justifyContent: "center",
     alignItems: "center",
-    height: 40,
-    width: "90%",
-    backgroundColor: "#757083",
-    marginBottom: "5%",
-    borderRadius: 5,
   },
 
-  btnText: {
+  buttontext: {
+    color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
   },
 });
