@@ -1,187 +1,241 @@
-import React, { useState, useEffect } from "react";
+// import react native gesture handler
+import "react-native-gesture-handler";
+
+import React, { Component } from "react";
 import {
   StyleSheet,
+  View,
   Text,
   TextInput,
-  View,
   Pressable,
   TouchableOpacity,
   ImageBackground,
-  Platform,
-  KeyboardAvoidingView,
 } from "react-native";
-import { signInAnonymously } from "firebase/auth";
-import { auth } from "./firebase";
-import NetInfo from "@react-native-community/netinfo";
 
-// import the background image
 import BackgroundImage from "../assets/Background_Image.png";
+import { Directions } from "react-native-gesture-handler";
 
-// Create constant that holds background colors for Chat Screen
-const colors = {
-  black: "#090C08",
-  purple: "#474056",
-  grey: "#8A95A5",
-  green: "#B9C6AE",
-};
+export default class Start extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      name: "",
+      bgColor: this.colors.blue,
+    };
+  }
 
-export default function Start(props) {
-  let [name, setName] = useState();
-  let [color, setColor] = useState();
-
-  // State to hold information if user is offline or online
-  const [isConnected, setIsConnected] = useState(false);
-
-  // Authenticate the user via Firebase and then redirect to the chat screen, passing the name and color props
-  const onHandleStart = () => {
-    if (isConnected) {
-      signInAnonymously(auth)
-        .then(() => {
-          console.log("Login success");
-          props.navigation.navigate("Chat", { name: name, color: color });
-        })
-        .catch((err) => console.log(`Login err: ${err}`));
-    } else {
-      props.navigation.navigate("Chat", { name: name, color: color });
-    }
+  colors = {
+    black: "#090C08",
+    purple: "#474056",
+    grey: "#8A95A5",
+    green: "#B9C6AE",
   };
 
-  useEffect(() => {
-    // Check if user is offline or online using NetInfo
-    NetInfo.fetch().then((connection) => {
-      if (connection.isConnected) {
-        setIsConnected(true);
-      } else {
-        setIsConnected(false);
-      }
-    });
-  });
+  setBgColor = (color) => this.setState({ bgColor: color });
 
-  return (
-    <View style={styles.container}>
-      <ImageBackground
-        source={BackgroundImage}
-        resizeMode="cover"
-        style={styles.image}
-      >
-        <Text style={styles.title}>Chat App</Text>
-
-        <View style={styles.box}>
-          {/* Input box to set user name passed to chat screen */}
-          <TextInput
-            onChangeText={(name) => setName(name)}
-            value={name}
-            style={styles.input}
-            placeholder="Your username..."
-          />
-
-          {/* Allow user to choose a background color for the chat screen */}
-          <Text style={styles.text}>Choose Background Color:</Text>
-          <View style={styles.colorContainer}>
-            <TouchableOpacity
-              style={[{ backgroundColor: colors.black }, styles.colorbutton]}
-              onPress={() => setColor(colors.black)}
-            />
-            <TouchableOpacity
-              style={[{ backgroundColor: colors.purple }, styles.colorbutton]}
-              onPress={() => setColor(colors.purple)}
-            />
-            <TouchableOpacity
-              style={[{ backgroundColor: colors.grey }, styles.colorbutton]}
-              onPress={() => setColor(colors.grey)}
-            />
-            <TouchableOpacity
-              style={[{ backgroundColor: colors.green }, styles.colorbutton]}
-              onPress={() => setColor(colors.green)}
-            />
+  render() {
+    return (
+      <View style={styles.container}>
+        <ImageBackground
+          source={BackgroundImage}
+          resizeMode="cover"
+          style={styles.image}
+        >
+          <View style={styles.titleFrame}>
+            <Text style={styles.title}>Chat App</Text>
           </View>
 
-          {/* Authenticate user & Open chatroom, passing user name and background color as props */}
-          <Pressable
-            onPress={onHandleStart}
-            style={({ pressed }) => [
-              {
-                backgroundColor: pressed ? "#585563" : "#757083",
-              },
-              styles.button,
-            ]}
-          >
-            <Text style={styles.buttontext}>Start Chatting</Text>
-          </Pressable>
-        </View>
-      </ImageBackground>
-      {Platform.OS === "android" ? (
-        <KeyboardAvoidingView behavior="height" />
-      ) : null}
-    </View>
-  );
+          <View style={styles.box}>
+            <View style={styles.inputBox}>
+              <TextInput
+                style={styles.TextInput}
+                onChangeText={(name) => this.setState({ name })}
+                value={this.state.name}
+                placeholder="Your name"
+              />
+            </View>
+
+            <View style={styles.chooseBox}>
+              <Text style={styles.chooseTtitle}>Choose Background Color</Text>
+            </View>
+            <View style={styles.colorFrame}>
+              <TouchableOpacity
+                accessible={true}
+                accessibilityLabel="Choose color"
+                accessibilityHint="Let’s you choose  color black as background"
+                accessibilityRole="button"
+                style={styles.color1}
+                onPress={() => this.setBgColor(this.colors.black)}
+              ></TouchableOpacity>
+
+              <TouchableOpacity
+                accessible={true}
+                accessibilityLabel="Choose color"
+                accessibilityHint="Let’s you choose  color purple as background"
+                accessibilityRole="button"
+                style={styles.color2}
+                onPress={() => this.setBgColor(this.colors.purple)}
+              ></TouchableOpacity>
+
+              <TouchableOpacity
+                accessible={true}
+                accessibilityLabel="Choose color"
+                accessibilityHint="Let’s you choose  color grey as background"
+                accessibilityRole="button"
+                style={styles.color3}
+                onPress={() => this.setBgColor(this.colors.grey)}
+              ></TouchableOpacity>
+
+              <TouchableOpacity
+                accessible={true}
+                accessibilityLabel="Choose color"
+                accessibilityHint="Let’s you choose  color green as background"
+                accessibilityRole="button"
+                style={styles.color4}
+                onPress={() => this.setBgColor(this.colors.green)}
+              ></TouchableOpacity>
+            </View>
+
+            <Pressable
+              style={styles.button}
+              onPress={() =>
+                this.props.navigation.navigate("Chat", {
+                  name: this.state.name,
+                  bgColor: this.state.bgColor,
+                })
+              }
+            >
+              <Text style={styles.pressText}>Start Chatting</Text>
+            </Pressable>
+          </View>
+        </ImageBackground>
+      </View>
+    );
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-
   image: {
     flex: 1,
-    flexDirection: "column",
-    justifyContent: "space-evenly",
+    width: "100%",
     alignItems: "center",
+    justifyContent: "center",
   },
 
-  title: {
-    fontSize: 45,
-    fontWeight: "600",
-    color: "#ffffff",
+  chooseBox: {
+    flex: 0.4,
+    marginRight: "auto",
+    paddingLeft: 15,
+    width: "88%",
+  },
+
+  chooseTtitle: {
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "300",
+    color: "#757083",
+    opacity: 1,
+    marginBottom: 10,
   },
 
   box: {
-    width: "88%",
-    backgroundColor: "white",
-    alignItems: "center",
     height: "44%",
+    width: "88%",
+    marginBottom: 30,
+    backgroundColor: "#ffffff",
+    flexGrow: 1,
+    flexShrink: 0,
+    flexDirection: "column",
     justifyContent: "space-evenly",
-  },
-
-  input: {
-    height: 50,
-    width: "88%",
-    fontSize: 16,
-    fontWeight: "300",
-    color: "#757083",
-    borderColor: "gray",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-  },
-
-  text: {
-    color: "#757083",
-    fontSize: 16,
-    fontWeight: "300",
-  },
-
-  colorContainer: {
-    width: "88%",
-    flexDirection: "row",
-    justifyContent: "space-evenly",
-  },
-
-  colorbutton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-  },
-
-  button: {
-    height: 50,
-    width: "88%",
-    justifyContent: "center",
     alignItems: "center",
+    paddingTop: 15,
+    paddingBottom: 15,
+    borderRadius: 10,
+    height: 260,
+    minHeight: 260,
+    maxHeight: 300,
   },
-
-  buttontext: {
-    color: "#ffffff",
+  button: {
+    width: "88%",
+    height: 70,
+    borderRadius: 8,
+    backgroundColor: "#757083",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pressText: {
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  title: {
+    fontSize: 45,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  titleFrame: {
+    width: "60%",
+    height: "auto",
+    alignItems: "center",
+    marginTop: 50,
+    resizeMode: "contain",
+    flex: 1,
+  },
+
+  inputBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#000",
+    height: 50,
+    width: "88%",
+    borderRadius: 5,
+    marginBottom: 40,
+    padding: 10,
+  },
+  TextInput: {
+    marginTop: 5,
+    fontSize: 16,
+    fontWeight: "300",
+    opacity: 0.5,
+    color: "#888",
+  },
+
+  colorFrame: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  color1: {
+    backgroundColor: "#090C08",
+    padding: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  color2: {
+    backgroundColor: "#474056",
+    padding: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  color3: {
+    backgroundColor: "#8A95A5",
+    padding: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  color4: {
+    backgroundColor: "#B9C6AE",
+    padding: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
 });

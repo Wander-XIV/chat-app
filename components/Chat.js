@@ -1,114 +1,195 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React from "react";
+import { View, Text, Platform, KeyboardAvoidingView } from "react-native";
 import { GiftedChat, Bubble, InputToolbar } from "react-native-gifted-chat";
-import {
-  StyleSheet,
-  View,
-  Platform,
-  KeyboardAvoidingView,
-  Text,
-} from "react-native";
 
-import {
-  collection,
-  onSnapshot,
-  addDoc,
-  query,
-  orderBy,
-} from "firebase/firestore";
+import * as Permissions from "expo-permissions";
+import * as ImagePicker from "expo-image-picker";
 
-import { auth, db } from "./firebase";
+import CustomActions from "./CustomActions";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import MapView from "react-native-maps";
+
+import firebase from "firebase";
+import "firebase/firestore";
+
 import NetInfo from "@react-native-community/netinfo";
 
-export default function Chat(props) {
-  const { name, color } = props.route.params;
-  const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
-  const [messages, setMessages] = useState([]);
-  const [isConnected, setIsConnected] = useState();
-  const messagesRef = collection(db, "messages");
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-  const saveMessages = async () => {
-    try {
-      await AsyncStorage.setItem("messages", JSON.stringify(messages));
-    } catch (error) {
-      console.log(error.message);
+export default class Chat extends React.Component {
+  constructor(props) {
+    super();
+    this.state = {
+      messages: [],
+      uid: 0,
+
+      user: {
+        _id: "",
+        name: "",
+      },
+      isConnected: null,
+      image: null,
+      location: null,
+    };
+
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBOF_UmhBgUWSoyV_qqKUq4qIY8Tm_1guc",
+      authDomain: "chatapptest-c1c37.firebaseapp.com",
+      projectId: "chatapptest-c1c37",
+      storageBucket: "chatapptest-c1c37.appspot.com",
+      messagingSenderId: "1079882846237",
+      appId: "1:1079882846237:web:f4298a0b792646a3f976f4",
+      measurementId: "G-ZHLPVZPNKX",
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
     }
+    // Reference to the Firestore collection "messages"
+    this.referenceChatMessages = firebase.firestore().collection("messages");
+  }
+
+  componentDidMount() {
+    // Set name as title chat
+    let { name } = this.props.route.params;
+    this.props.navigation.setOptions({ title: name });
+
+    // Check if user is offline or online
+    NetInfo.fetch().then((connection) => {
+      if (connection.isConnected) {
+        this.setState({
+          isConnected: true,
+        });
+
+        // Reference to load messages from Firebase
+        this.referenceChatMessages = firebase
+          .firestore()
+          .collection("messages");
+
+        // Authenticate user anonymously
+        this.authUnsubscribe = firebase
+          .auth()
+          .onAuthStateChanged(async (user) => {
+            if (!user) {
+              firebase.auth().signInAnonymously();
+            }
+            this.setState({
+              uid: user.uid,
+              messages: [],
+              user: {
+                _id: user.uid,
+                name: name,
+              },
+            });
+            this.unsubscribe = this.referenceChatMessages
+              .orderBy("createdAt", "desc")
+              .onSnapshot(this.onCollectionUpdate);
+          });
+      } else {
+        this.setState({
+          isConnected: false,
+        });
+        this.getMessages();
+      }
+    });
+  }
+
+  componentWillUnmount() {
+    if (this.isConnected) {
+      this.unsubscribe();
+      this.authUnsubscribe();
+    }
+  }
+
+  onCollectionUpdate = (querySnapshot) => {
+    const messages = [];
+    // go through each document
+    querySnapshot.forEach((doc) => {
+      // get the QueryDocumentSnapshot's data
+      let data = doc.data();
+      messages.push({
+        _id: data._id,
+        text: data.text,
+        createdAt: data.createdAt.toDate(),
+        user: {
+          _id: data.user._id,
+          name: data.user.name,
+        },
+        image: data.image || null,
+        location: data.location || null,
+      });
+    });
+    this.setState({
+      messages,
+    });
   };
 
-  const getMessages = async () => {
+  async getMessages() {
     let messages = "";
     try {
       messages = (await AsyncStorage.getItem("messages")) || [];
-      setMessages(JSON.parse(messages));
+      this.setState({
+        messages: JSON.parse(messages),
+      });
     } catch (error) {
       console.log(error.message);
     }
-  };
+  }
 
-  const deleteMessages = async () => {
+  async saveMessages() {
+    try {
+      await AsyncStorage.setItem(
+        "messages",
+        JSON.stringify(this.state.messages)
+      );
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+
+  // delete function for testing
+  async deleteMessages() {
     try {
       await AsyncStorage.removeItem("messages");
+      this.setState({
+        messages: [],
+      });
     } catch (error) {
       console.log(error.message);
     }
-  };
+  }
 
-  useEffect(() => {
-    props.navigation.setOptions({ title: name });
-    let unsubscribe;
-
-    NetInfo.fetch().then((connection) => {
-      if (connection.isConnected) {
-        setIsConnected(true);
-      } else {
-        setIsConnected(false);
-      }
-    });
-
-    if (isConnected) {
-      const messagesQuery = query(messagesRef, orderBy("createdAt", "desc"));
-
-      unsubscribe = onSnapshot(messagesQuery, onCollectionUpdate);
-
-      deleteMessages();
-
-      saveMessages();
-
-      return () => unsubscribe();
-    } else {
-      getMessages();
-    }
-  }, [isConnected]);
-
-  const addMessage = (message) => {
-    addDoc(messagesRef, {
+  // Add messages to Firebase
+  addMessages(message) {
+    this.referenceChatMessages.add({
+      uid: this.state.uid,
       _id: message._id,
       text: message.text || "",
       createdAt: message.createdAt,
       user: message.user,
+      image: message.image || null,
+      location: message.location || null,
     });
-  };
+  }
 
-  const onSend = useCallback((messages = []) => {
-    setMessages((previousMessages) =>
-      GiftedChat.append(previousMessages, messages)
+  onSend(messages = []) {
+    this.setState(
+      (previousState) => ({
+        messages: GiftedChat.append(previousState.messages, messages),
+      }),
+      () => {
+        this.addMessages(this.state.messages[0]);
+        this.saveMessages();
+        this.deleteMessages();
+      }
     );
-    addMessage(messages[0]);
-  }, []);
-
-  const onCollectionUpdate = (querySnapshot) => {
-    setMessages(
-      querySnapshot.docs.map((doc) => ({
-        _id: doc.data()._id,
-        createdAt: doc.data().createdAt.toDate(),
-        text: doc.data().text,
-        user: doc.data().user,
-      }))
-    );
-  };
-
-  const renderBubble = (props) => {
+  }
+  renderBubble(props) {
     return (
       <Bubble
         {...props}
@@ -119,45 +200,55 @@ export default function Chat(props) {
         }}
       />
     );
-  };
+  }
 
-  const renderInputToolbar = (props) => {
-    if (!isConnected) {
-      // Hide Toolbar
+  renderInputToolbar(props) {
+    if (this.state.isConnected == false) {
     } else {
-      // Display Toolbar
       return <InputToolbar {...props} />;
     }
+  }
+
+  renderCustomView(props) {
+    const { currentMessage } = props;
+    if (currentMessage.location) {
+      return (
+        <MapView
+          style={{ width: 150, height: 100, borderRadius: 13, margin: 3 }}
+          region={{
+            latitude: currentMessage.location.latitude,
+            longitude: currentMessage.location.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        />
+      );
+    }
+    return null;
+  }
+
+  renderCustomActions = (props) => {
+    return <CustomActions {...props} />;
   };
-
-  return (
-    <View style={[{ backgroundColor: color }, styles.container]}>
-      {showWelcomeMessage && (
-        <Text style={styles.welcomeText}>Hi there {name}, let's chat!</Text>
-      )}
-      <GiftedChat
-        renderBubble={renderBubble.bind()}
-        renderInputToolbar={renderInputToolbar.bind()}
-        messages={messages}
-        showAvatarForEveryMessage={true}
-        onSend={(messages) => onSend(messages)}
-        user={{
-          _id: auth?.currentUser?.uid,
-          name: name,
-          avatar: "https://placeimg.com/140/140/any",
-        }}
-      />
-
-      {/* Avoid keyboard to overlap text messages on older Andriod versions */}
-      {Platform.OS === "android" ? (
-        <KeyboardAvoidingView behavior="height" />
-      ) : null}
-    </View>
-  );
+  render() {
+    let { bgColor } = this.props.route.params;
+    return (
+      <View
+        style={{ flex: 1, justifyContent: "center", backgroundColor: bgColor }}
+      >
+        <GiftedChat
+          renderInputToolbar={this.renderInputToolbar.bind(this)}
+          renderActions={this.renderCustomActions}
+          renderBubble={this.renderBubble.bind(this)}
+          renderCustomView={this.renderCustomView}
+          messages={this.state.messages}
+          onSend={(messages) => this.onSend(messages)}
+          user={{ _id: this.state.user._id, name: this.state.user.name }}
+        />
+        {Platform.OS === "android" ? (
+          <KeyboardAvoidingView behavior="height" />
+        ) : null}
+      </View>
+    );
+  }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-});
