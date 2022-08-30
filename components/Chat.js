@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Platform, KeyboardAvoidingView } from "react-native";
+import { View, Platform, KeyboardAvoidingView } from "react-native";
 import { GiftedChat, Bubble, InputToolbar } from "react-native-gifted-chat";
 import CustomActions from "./CustomActions";
 import MapView from "react-native-maps";
