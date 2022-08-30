@@ -1,20 +1,11 @@
 import React from "react";
 import { View, Text, Platform, KeyboardAvoidingView } from "react-native";
 import { GiftedChat, Bubble, InputToolbar } from "react-native-gifted-chat";
-
-import * as Permissions from "expo-permissions";
-import * as ImagePicker from "expo-image-picker";
-
 import CustomActions from "./CustomActions";
-
-import * as Location from "expo-location";
 import MapView from "react-native-maps";
-
 import firebase from "firebase";
 import "firebase/firestore";
-
 import NetInfo from "@react-native-community/netinfo";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default class Chat extends React.Component {

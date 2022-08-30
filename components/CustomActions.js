@@ -2,16 +2,12 @@ import React from "react";
 import PropTypes from "prop-types";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { connectActionSheet } from "@expo/react-native-action-sheet";
-
-//import * as Permissions from "expo-permissions";
 import * as ImagePicker from "expo-image-picker";
-
 import * as Location from "expo-location";
 import firebase from "firebase";
 import "firebase/firestore";
 
 class CustomAction extends React.Component {
-  // Upload images to firebase and convert it to a blob
   uploadImageFetch = async (uri) => {
     const blob = await new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -39,18 +35,14 @@ class CustomAction extends React.Component {
     return await snapshot.ref.getDownloadURL();
   };
 
-  // User picks an image from the library to send on the chat
   async pickImage() {
-    // permission to select image from library?
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     try {
       if (status === "granted") {
-        // pick image, if permission granted
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
         }).catch((error) => console.error(error));
 
-        // if not cancelled, upload and send image
         if (!result.cancelled) {
           const imageUrl = await this.uploadImageFetch(result.uri);
 
@@ -62,17 +54,14 @@ class CustomAction extends React.Component {
     }
   }
 
-  // User takes a picture to send in the chat
   async takePhoto() {
-    // permission to use camera?
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     try {
-      // launch camera, if permission granted
       if (status === "granted") {
         let result = await ImagePicker.launchCameraAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
         }).catch((error) => console.error(error));
-        // if action is not cancelled, upload and send image
+
         if (!result.cancelled) {
           const imageUrl = await this.uploadImageFetch(result.uri);
 
@@ -84,9 +73,7 @@ class CustomAction extends React.Component {
     }
   }
 
-  // User gets own location to send in the chat
   getLocation = async () => {
-    // Ask for permission
     const { status } = await Location.requestForegroundPermissionsAsync();
     try {
       if (status === "granted") {
@@ -107,7 +94,6 @@ class CustomAction extends React.Component {
     }
   };
 
-  // Actionsheet with different options
   onActionPress = () => {
     const options = [
       "Choose From Library",

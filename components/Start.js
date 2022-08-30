@@ -9,9 +9,7 @@ import {
   TouchableOpacity,
   ImageBackground,
 } from "react-native";
-
 import BackgroundImage from "../assets/Background_Image.png";
-import { Directions } from "react-native-gesture-handler";
 
 export default class Start extends React.Component {
   constructor(props) {
