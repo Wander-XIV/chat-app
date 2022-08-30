@@ -33,10 +33,7 @@ export default class Chat extends React.Component {
       location: null,
     };
 
-    // https://firebase.google.com/docs/web/setup#available-libraries
-
-    // Your web app's Firebase configuration
-
+    // Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyBOF_UmhBgUWSoyV_qqKUq4qIY8Tm_1guc",
       authDomain: "chatapptest-c1c37.firebaseapp.com",
@@ -50,28 +47,24 @@ export default class Chat extends React.Component {
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
-    // Reference to the Firestore collection "messages"
+
     this.referenceChatMessages = firebase.firestore().collection("messages");
   }
 
   componentDidMount() {
-    // Set name as title chat
     let { name } = this.props.route.params;
     this.props.navigation.setOptions({ title: name });
 
-    // Check if user is offline or online
     NetInfo.fetch().then((connection) => {
       if (connection.isConnected) {
         this.setState({
           isConnected: true,
         });
 
-        // Reference to load messages from Firebase
         this.referenceChatMessages = firebase
           .firestore()
           .collection("messages");
 
-        // Authenticate user anonymously
         this.authUnsubscribe = firebase
           .auth()
           .onAuthStateChanged(async (user) => {
@@ -108,9 +101,8 @@ export default class Chat extends React.Component {
 
   onCollectionUpdate = (querySnapshot) => {
     const messages = [];
-    // go through each document
+
     querySnapshot.forEach((doc) => {
-      // get the QueryDocumentSnapshot's data
       let data = doc.data();
       messages.push({
         _id: data._id,
@@ -152,7 +144,6 @@ export default class Chat extends React.Component {
     }
   }
 
-  // delete function for testing
   async deleteMessages() {
     try {
       await AsyncStorage.removeItem("messages");
@@ -164,7 +155,6 @@ export default class Chat extends React.Component {
     }
   }
 
-  // Add messages to Firebase
   addMessages(message) {
     this.referenceChatMessages.add({
       uid: this.state.uid,
